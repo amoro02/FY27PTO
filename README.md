@@ -1,6 +1,6 @@
 # FY26 CRZ Time Off Management Web App
 
-Production-oriented internal app built with **Next.js + TypeScript + Prisma + PostgreSQL**.
+Production-oriented internal app built with **Next.js + TypeScript + Prisma + PostgreSQL (Neon compatible)**.
 
 ## Features Implemented
 - Username/password auth with role-based access.
@@ -42,14 +42,30 @@ Production-oriented internal app built with **Next.js + TypeScript + Prisma + Po
    npm run dev
    ```
 
-## Deployment
-- Use managed PostgreSQL (RDS, Cloud SQL, Azure PG, etc).
-- Set env vars: `DATABASE_URL`, `JWT_SECRET`, `ADMIN_PASSCODE`.
-- Build/start:
-  ```bash
-  npm run build
-  npm run start
-  ```
+## Vercel + Neon Deployment Notes
+If Vercel shows **"No Next.js version detected"**, the deployment is usually pointing to the wrong commit/branch or root directory.
+
+Checklist:
+1. In Vercel project settings, set the connected branch to your production branch (recommended: `main`).
+2. Set **Root Directory** to the repository root (`/`) where `package.json` exists.
+3. Confirm `package.json` contains `"next"` in dependencies (this repo does).
+4. Add env vars in Vercel:
+   - `DATABASE_URL` (Neon connection string)
+   - `JWT_SECRET`
+   - `ADMIN_PASSCODE`
+5. Redeploy after branch + root directory are corrected.
+
+## Branch Strategy (single branch)
+For your requested workflow (GitHub -> Vercel -> Neon), keep only one long-lived branch:
+- `main` = the only active branch for production.
+- Delete temporary branches after merge.
+
+Commands:
+```bash
+git checkout main
+git branch -D <temp-branch>
+git push origin --delete <temp-branch>
+```
 
 ## Default Seed Credentials
 - Admin: `arturo.montoya` / `AdminChangeMe123!`
