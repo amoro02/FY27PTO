@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERVISOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  INACTIVE
+}
+
+enum Shift {
+  FIRST
+  SECOND
+  THIRD
+}
+
+enum ValueStream {
+  WCZ
+  BCZ
+}
+
+enum PtoType {
+  PTO
+  COMP_TIME
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+enum Decision {
+  APPROVED
+  DENIED
+}
+
+model User {
+  id             String @id @default(cuid())
+  name           String
+  username       String @unique
+  role           Role
+  valueStream    ValueStream?
+  shift          Shift?
+  status         UserStatus @default(ACTIVE)
+  email          String?
+  passwordHash   String?
+  carryoverHours Float @default(0)
+  adjustmentHours Float @default(0)
+  compTimeBalance Float @default(0)
+
+  ptoRequests PtoRequest[]
+  ptoEntries PtoEntry[]
+  otAssignments OtAssignment[] @relation("AssignedUser")
+  ptoDecisions PtoDecision[] @relation("Decider")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PtoRequest {
+  id          String @id @default(cuid())
+  userId      String
+  startDate   DateTime
+  endDate     DateTime
+  hoursPerDay Float
+  type        PtoType
+  notes       String?
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  user       User @relation(fields: [userId], references: [id])
+  decision   PtoDecision?
+  ptoEntries PtoEntry[]
+}
+
+model PtoDecision {
+  id              String @id @default(cuid())
+  requestId       String @unique
+  decidedByUserId String
+  decision        Decision
+  reason          String?
+  decidedAt       DateTime @default(now())
+
+  request      PtoRequest @relation(fields: [requestId], references: [id])
+  decidedBy    User @relation("Decider", fields: [decidedByUserId], references: [id])
+}
+
+model PtoEntry {
+  id              String @id @default(cuid())
+  userId          String
+  date            DateTime
+  hours           Float
+  type            PtoType
+  sourceRequestId String?
+
+  user          User @relation(fields: [userId], references: [id])
+  sourceRequest PtoRequest? @relation(fields: [sourceRequestId], references: [id])
+
+  @@unique([userId, date, type])
+}
+
+model OtAssignment {
+  id             String @id @default(cuid())
+  date           DateTime
+  shift          Shift
+  valueStream    ValueStream
+  assignedUserId String
+  label          String?
+
+  assignedUser User @relation("AssignedUser", fields: [assignedUserId], references: [id])
+  @@unique([date, shift, valueStream])
+}
+
+model VsmOutOfOffice {
+  id    String @id @default(cuid())
+  date  DateTime
+  note  String?
+}
+
+model Settings {
+  id                  String @id @default("singleton")
+  fiscalYearStartMonth Int @default(4)
+  fiscalYearStartDay   Int @default(1)
+  defaultGrantedHours  Float @default(160)
+}
